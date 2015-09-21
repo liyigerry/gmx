@@ -1,0 +1,34 @@
+package:
+  name: pdbfixer-dev
+  version: dev
+
+build:
+  entry_points:
+    - pdbfixer = pdbfixer.pdbfixer:main
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - openmm-dev
+    - numpy
+
+  run:
+    - python
+    - openmm-dev
+    - numpy
+
+test:
+  requires:
+    - nose
+
+  imports:
+    - pdbfixer
+
+  commands:
+    - nosetests pdbfixer --nocapture --verbosity=2 --with-doctest
+
+about:
+  home: http://github.com/pandegroup/pdbfixer
+  license: free
+  summary: PDBFixer fixes problems in PDB files to prepare them for molecular simulation.
