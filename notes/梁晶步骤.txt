@@ -1,0 +1,295 @@
+﻿同源模建步骤
+  对于模板来源较多且序列一致性较高的同源模建可以考虑使用在线服务器自动生成结构模型，一般是把靶序列直接粘贴或上传到在线服务器，填写邮箱即可。下面简单说明使用Modeller来建模的基本过程。Modeller Windows版本直接双击安装即可，注册码为MODELIRANJE
+1 搜寻模板
+  打开网站http://workbench.sdsc.edu/ ，点击Click to Enter the Biology Workbench 3.2 ，免费注册后输入用户名和密码后进入界面。点击Protein Tools进入蛋白质工具，进入界面后点击下面的Add选项卡，系统提示输入靶序列的氨基酸序列及名称（Label），然后点击Save。返回后在序列名称前打勾，点击下面的PSIBLAST选项卡，进入界面后选择PDB Sequences数据库，如果其他参数使用默认值的话，直接点击下面的Submit。计算会有三个重复，即round1，round2和round3，最后结果参考round3即可。选取得分（Score）较高，Evalue较低及Identities较高的晶体结构作为同源模建的模板结构，同时也应该考虑其他因素。如构建与配体结合后的模型，则优先选取配体结合后的晶体结构，如要研究蛋白的几何属性，则要优先选取分辨率较高的晶体结构。
+2 靶序列和模板结构比对及模型生成
+  首先要安装Python运行环境，并写入环境变量。
+  如果只有一个模板，则直接将靶序列和模板比对，然后根据比对结果生成模型即可。如果有两个及以上模板，则首先要将这些模板进行比对，然后再将比对结果和靶序列进行比对，再根据最后的比对结果生成模型。
+  2.1 只有一个模板
+  将下载的模板PDB文件(stru.pdb)和靶序列（seq.ali）文件放入同一个文件夹，如model文件夹，同时将序列和模板比对的脚本（align2d.py）和生成模型的脚本model-single.py放入此文件夹。在Windows的Dos窗口中进入此文件夹，运行命令python align2d.py进行靶序列和模板比对，然后运行python model-single.py生成20个结构模型。选取分子概率密度函数值（MOLPDF）最小的结构作为最终的结构模型。
+  2.2 有两个或多个模板
+  将下载的模板PDB文件（stru1.pdb，stru2.pdb，stru3.pdb）和靶序列（seq.ali）文件放入同一个名为model的文件夹，同时将模板比对脚本（align_template.py）,靶序列和模板比对脚本（align2d_mult.py）以及生成模型的脚本（homomodel.py）放入此文件夹。在Windows的Dos窗口中进入此文件夹，运行命令python align_template.py进行模板结构之间的比对，然后运行python align2d_mult.py将靶序列和模板之间的比对结果进行比对。最后运行python homomodel.py脚本生成20个结构模型。选取分子概率密度函数值（MOLPDF）最小的结构作为最终的结构模型。
+
+
+
+unliganded:分子动力学模步骤
+
+1.
+gmx pdb2gmx -f unboundgp120.pdb -o unboundgp120_processed.gro 
+5
+1
+2.
+gmx editconf -f unboundgp120_processed.gro -o unboundgp120_newbox.gro -c -d 1.18 -bt dodecahedron
+
+3.
+gmx solvate -cp unboundgp120_newbox.gro -cs spc216.gro -o unboundgp120_solv.gro -p topol.top
+4.
+gmx grompp -f ions.mdp -c unboundgp120_solv.gro -p topol.top -o ions.tpr
+5.
+gmx genion -s ions.tpr -o unbound120_solv_ions.gro -p topol.top -pname CL -nname NA -nn 0(mojiande nAGE SHI  +11  SO JIA -11GE CL)
+ 
+gmx genion -s ions.tpr -o unboundgp120_solv_ions.gro -neutral -conc 0.15 -p topol.top(选13）
+6.
+gmx grompp -f minim.mdp -c unboundgp120_solv_ions.gro -p topol.top -o minim.tpr
+
+gmx mdrun -v -deffnm minim(step=2631)
+gmx mdrun -ntmpi 4 -ntomp 12 -gpu_id 0234 -v -deffnm minim
+
+7.NVT
+gmx grompp -f nvt.mdp -c minim.gro -p topol.top -o nvt.tpr
+
+8.
+gmx mdrun -v -deffnm nvt
+
+gmx mdrun -ntmpi 4 -ntomp 12 -gpu_id 0234 -v -deffnm nvt
+9.NPT
+gmx grompp -f npt.mdp -c nvt.gro -t nvt.cpt -p topol.top -o npt.tpr
+10.
+gmx mdrun -v -deffnm npt
+
+gmx mdrun -ntmpi 4 -ntomp 12 -gpu_id 0234 -v -deffnm npt
+11.MD
+gmx grompp -f md.mdp -c npt.gro -t npt.cpt -p topol.top -o md_0_1.tpr
+12.
+gmx mdrun -v -deffnm md_0_1
+
+nohup gmx mdrun -ntmpi 4 -ntomp 12 -gpu_id 0234 -v -deffnm md_0_1 & > mdrun.out
+
+gmx mdrun -ntmpi 8 -ntomp 6 -gpu_id 02340234 -v -deffnm md_0_1
+
+nohup gmx mdrun -ntmpi 8 -ntomp 6 -gpu_id 02340234 -v -deffnm md_0_1 & > mdrun.out
+
+
+gmx trjconv -f unliganded.xtc -o unligandedgp120.xtc
+gmx trjconv -f unliganded.xtc -s unligandedgp120.tpr -o unligandedgp120.xtc -pbc mol -ur compact 
+gmx trjconv -f unliganded.xtc -s unligandedgp120.tpr -o unligandedgp120.xtc -pbc cluster -ur compact 
+gmx trjconv -s unligandedgp120.tpr -f unliganded.xtc -o unligandedgp120.xtc -fit trans -pbc nojump
+0
+
+
+
+RMSD:
+gmx rms -f unligandedgp120.xtc -s unligandedgp120.tpr -o unligandedgp120rmsd.xvg -a unligandedgp120rmsd_average.xvg
+4
+4
+xmgrace unligandedgp120rmsd.xvg(读图)(一次重复)
+
+将10个replica的平衡轨迹做在一个图里：xmgrace -legend load replica1.xvg replica2.xvg replica3.xvg replica4.xvg replica5.xvg replica6.xvg replica7.xvg replica8.xvg replica9.xvg replica10.xvg
+
+
+截取轨迹文件:
+gmx trjconv -f unligandedgp120.xtc -s unligandedgp120.tpr -o unligandedgp120pingheng.xtc -b 30000 -e 100000
+0
+
+做combine.xtc文件命令：trjcat -f pingheng1.xtc pingheng2.xtc pingheng3.xtc pingheng4.xtc pingheng5.xtc pingheng6.xtc  pingheng7.xtc pingheng8.xtc pingheng9.xtc pingheng10.xtc -o uncombine.xtc -settime,回车Enter,连续输入6个字母“c”，再回车。
+
+
+RMSF:
+gmx rmsf -f uncombine.xtc.xtc -s unligandedgp120.tpr -o uncombinermsf.xvg -ox average.pdb -res -oq bfactor.pdb
+3
+xmgrace uncombinermsf.xvg(读图)
+  
+回旋半径:
+gmx gyrate -f uncombine.xtc -s unligandedgp120.tpr -o gyrate.xvg
+1
+xmgrace gyrate.xvg(读图)
+
+平均值及方差计算:
+gmx analyze -f gyrate.xvg
+  
+二级结构：
+gmx do_dssp -f uncombine.xtc -s unligandedgp120.tpr -ssdump dump.dat -map ss.map -sc sc.xvg -o ss.xpm 
+1
+
+gmx xpm2ps -f ss.xpm -di md.m2p -o ss.eps2
+
+氢键：
+gmx hbond -f uncombine.xtc -s unligandedgp120.tpr -num num.xvg -g hbond.log -hbn hbond.ndx
+1
+1
+gmx analyze -f num.xvg
+
+表面积积：
+
+gmx sasa -f uncombine.xtc -s unligandedgp120.tpr -o area.xvg -oa oa.xvg -or resarea.xvg
+1
+gmx analyze -f resarea.xvg
+
+范德华接触：
+gmx mindist -f uncombine.xtc -s unligandedgp120.tpr -od mindist.xvg -on numcont.xvg -o atompair.out -or mindistres.xvg
+1
+1
+gmx analyze -f numcont.xvg
+
+本质动力学:
+
+
+1.协方差矩阵：gmx covar -f uncombine.xtc -s unligandedgp120.tpr -o eigen.xvg -v eigen.trr -l covar.log -xpm covar.xpm -xpma covara.xpm
+3
+3
+
+2.分析本征向量:gmx anaeig -v eigen.trr -f uncombine.xtc -s unligandedgp120.tpr -comp eigcomp.xvg -rmsf eigrmsf.xvg -proj proj.xvg -extr extreme.pdb -first 1 -last 4 -nframes 2
+3
+3
+3.做二维结构图:gmx anaeig -v eigen.trr -f uncombine.xtc -s unligandedgp120.tpr -2d 2dproj.xvg -first 1 -last 2
+3
+3
+
+用rasmol做图
+file - extreme1.pdb  
+display - backbone  
+colours - chain
+file - save as (mingcheng:extreme1.trr)
+
+
+liganded:分子动力学模步骤
+
+1.
+gmx pdb2gmx -f boundgp120.pdb -o boundgp120_processed.gro 
+5
+1
+2.
+gmx editconf -f boundgp120_processed.gro -o boundgp120_newbox.gro -c -d 0.85 -bt dodecahedron
+
+3.
+gmx solvate -cp boundgp120_newbox.gro -cs spc216.gro -o boundgp120_solv.gro -p topol.top
+4.
+gmx grompp -f ions.mdp -c boundgp120_solv.gro -p topol.top -o ions.tpr
+5.
+gmx genion -s ions.tpr -o bound120_solv_ions.gro -p topol.top -pname CL -nname NA -nn 0(mojiande nAGE SHI  +11  SO JIA -11GE CL)
+ 
+gmx genion -s ions.tpr -o boundgp120_solv_ions.gro -neutral -conc 0.15 -p topol.top(选13）
+6.
+gmx grompp -f minim.mdp -c boundgp120_solv_ions.gro -p topol.top -o minim.tpr
+
+gmx mdrun -v -deffnm minim
+gmx mdrun -ntmpi 4 -ntomp 12 -gpu_id 0234 -v -deffnm minim
+
+7.NVT
+gmx grompp -f nvt.mdp -c minim.gro -p topol.top -o nvt.tpr
+
+8.
+gmx mdrun -v -deffnm nvt
+
+gmx mdrun -ntmpi 4 -ntomp 12 -gpu_id 0234 -v -deffnm nvt
+9.NPT
+gmx grompp -f npt.mdp -c nvt.gro -t nvt.cpt -p topol.top -o npt.tpr
+10.
+gmx mdrun -v -deffnm npt
+
+gmx mdrun -ntmpi 4 -ntomp 12 -gpu_id 0234 -v -deffnm npt
+11.MD
+gmx grompp -f md.mdp -c npt.gro -t npt.cpt -p topol.top -o md_0_1.tpr
+12.
+gmx mdrun -v -deffnm md_0_1
+
+nohup gmx mdrun -ntmpi 4 -ntomp 12 -gpu_id 0234 -v -deffnm md_0_1 & > mdrun.out
+
+gmx mdrun -ntmpi 8 -ntomp 6 -gpu_id 02340234 -v -deffnm md_0_1
+
+nohup gmx mdrun -ntmpi 8 -ntomp 6 -gpu_id 02340234 -v -deffnm md_0_1 & > mdrun.out
+
+
+gmx trjconv -f liganded.xtc -o ligandedgp120.xtc
+gmx trjconv -f liganded.xtc -s ligandedgp120.tpr -o ligandedgp120.xtc -pbc mol -ur compact 
+gmx trjconv -f liganded.xtc -s ligandedgp120.tpr -o ligandedgp120.xtc -pbc cluster -ur compact 
+gmx trjconv -s ligandedgp120.tpr -f liganded.xtc -o ligandedgp120.xtc -fit trans -pbc nojump
+0
+
+gmx make_ndx -f ligandedgp120.gro -o index.ndx
+r 100-561 & 3
+
+RMSD:
+gmx rms -f ligandedgp120.xtc -s ligandedgp120.tpr -n index.ndx -o ligandedgp120rmsd.xvg -a ligandedgp120rmsd_average.xvg
+4
+4
+xmgrace ligandedgp120rmsd.xvg(读图)(一次重复)
+
+将10个replica的平衡轨迹做在一个图里：xmgrace -legend load replica1.xvg replica2.xvg replica3.xvg replica4.xvg replica5.xvg replica6.xvg replica7.xvg replica8.xvg replica9.xvg replica10.xvg
+
+
+截取轨迹文件: 
+gmx trjconv -f ligandedgp120.xtc -s ligandedgp120.tpr -n index.ndx -o ligandedgp120pingheng.xtc -b 30000 -e 100000
+0
+
+做combine.xtc文件命令：trjcat -f pingheng1.xtc pingheng2.xtc pingheng3.xtc pingheng4.xtc pingheng5.xtc pingheng6.xtc  pingheng7.xtc pingheng8.xtc pingheng9.xtc pingheng10.xtc -o licombine.xtc -settime,回车Enter,连续输入6个字母“c”，再回车。
+
+
+RMSF:
+gmx rmsf -f licombine.xtc.xtc -s ligandedgp120.tpr -o licombinermsf.xvg  -n index.ndx -ox average.pdb -res -oq bfactor.pdb
+3
+xmgrace licombinermsf.xvg(读图)
+  
+回旋半径:
+gmx gyrate -f licombine.xtc -s ligandedgp120.tpr -n index.ndx -o gyrate.xvg
+1
+xmgrace gyrate.xvg(读图)
+
+平均值及方差计算:
+gmx analyze -f gyrate.xvg
+  
+二级结构：
+gmx do_dssp -f licombine.xtc -s ligandedgp120.tpr -n index.ndx -ssdump dump.dat -map ss.map -sc sc.xvg -o ss.xpm 
+1
+
+gmx xpm2ps -f ss.xpm -di md.m2p -o ss.eps2
+
+氢键：
+gmx hbond -f licombine.xtc -s ligandedgp120.tpr -n index.ndx -num num.xvg -g hbond.log -hbn hbond.ndx
+1
+1
+gmx analyze -f num.xvg
+
+表面积积：
+
+gmx sasa -f licombine.xtc -s ligandedgp120.tpr -n index.ndx -o area.xvg -oa oa.xvg -or resarea.xvg
+1
+gmx analyze -f resarea.xvg
+
+范德华接触：
+gmx mindist -f licombine.xtc -s ligandedgp120.tpr -n index.ndx -od mindist.xvg -on numcont.xvg -o atompair.out -or mindistres.xvg
+1
+1
+gmx analyze -f numcont.xvg
+
+本质动力学:
+
+
+1.协方差矩阵：gmx covar -f licombine.xtc -s ligandedgp120.tpr -n index.ndx -o eigen.xvg -v eigen.trr -l covar.log -xpm covar.xpm -xpma covara.xpm
+
+2.分析本征向量:gmx anaeig -v eigen.trr -f licombine.xtc -s ligandedgp120.tpr -n index.ndx -comp eigcomp.xvg -rmsf eigrmsf.xvg -proj proj.xvg -extr extreme.pdb -first 1 -last 4 -nframes 2
+
+3.做二维结构图:gmx anaeig -v eigen.trr -f licombine.xtc -s ligandedgp120.tpr -n index.ndx -2d 2dproj.xvg -first 1 -last 2
+
+
+用rasmol做图
+file - extreme1.pdb  
+display - backbone  
+colours - chain
+file - save as (mingcheng:extreme1.trr)
+
+
+
+
+组合本质动力学:
+组合轨迹：
+gmx trjcat -f uncombine.xtc licombine.xtc -n index.ndx  -o combine.xtc -settime
+c回车
+c回车
+对融合轨迹进行协方差分析
+gmx covar -f combine.xtc -s ligandedgp120.tpr -n index.ndx -av average.pdb
+gmx covar -s average.pdb -f combine.xtc -v combineeigen.trr -av combineaverage.pdb -l combinedlog.log -xpm combinedxpm.xpm -xpma combinedxpma.xpma
+
+对融合轨迹进行本征向量分析：
+
+gmx anaeig -s combineaverage.pdb -f combine.xtc -v combineeigen.trr -eig eigenval.xvg -comp combinecomp.xvg -rmsf combinermsf.xvg -proj combineproj.xvg -first 1 -last 30 -nframes 30 -entropy
+gmx analyze -f combinedproj.xvg -msd combinedmsd.xvg -dist combineddist.xvg
+
+xmgrace -nxy average_projection.xvg
+xmgrace -nxy msd_projection.xvg
+
+
+内插图做法：
+gmx anaeig -s combineaverage.pdb -f combine.xtc -v combineeigen.trr -eig eigenval.xvg -comp combinecomp.xvg -rmsf combinermsf.xvg -proj combineproj.xvg -first 1 -last 30 -nframes 30 -entropy
+
+
