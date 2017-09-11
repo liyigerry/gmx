@@ -9,6 +9,7 @@
 ## 笔记
 1. [李毅笔记](./notes/李毅笔记.md)
 2. [梁晶步骤](./notes/梁晶步骤.txt)
+3. [元动力学](./notes/metadynamics.md)
 
 ## 小技巧
 1. linux相关[linux.md](./tips/linux.md)
