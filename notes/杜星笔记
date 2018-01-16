@@ -1,0 +1,290 @@
+
+gmx trjconv -f 3j70120md.xtc -o 013j70120md.xtc
+gmx trjconv -f 3j70120md.xtc -s 3j70120md.tpr -o 013j70120md.xtc -pbc mol -ur compact 
+gmx trjconv -f 3j70120md.xtc -s 3j70120md.tpr -o 013j70120md.xtc -pbc cluster -ur compact 
+gmx trjconv -s complexgai3.tpr -f complexgai3.xtc -o cd4md.xtc -fit trans -pbc nojump
+0
+
+
+RMSD:
+gmx rms -f 013j70120md.xtc -s 3j70120md.tpr -o 3j70120rmsd.xvg -a 3j70120rmsd_average.xvg
+4
+4
+xmgrace 3j70120rmsd.xvg(读图)
+
+
+RMSF:
+gmx rmsf -f 013j70120md.xtc -s 3j70120md.tpr -o 3j70120rmsf.xvg -ox average.pdb -res -oq bfactor.pdb
+3
+xmgrace 3j70120rmsf.xvg(读图)
+
+
+几何属性分析:
+  截取轨迹文件:
+gmx trjconv -f 013j70120md.xtc -s 3j70120md.tpr -o 3j70120pingheng.xtc -b 10000 -e 20000
+0
+  回旋半径:
+gmx gyrate -f 3j70120pingheng.xtc -s 3j70120md.tpr -o gyrate.xvg
+1
+xmgrace gyrate.xvg(读图)
+  平均值及方差计算:
+gmx analyze -f gyrate.xvg
+  
+  二级结构：
+?
+?
+gmx do_dssp -f 013j70120md.xtc -s 3j70120md.tpr -ssdump dump.dat -map ss.map -sc sc.xvg -o ss.xpm 
+1
+
+gmx xpm2ps -f ss.xpm -di md.m2p -o ss.eps2
+
+
+  氢键：
+gmx hbond -f 013j70120md.xtc -s 3j70120md.tpr -num num.xvg -g hbond.log -hbn hbond.ndx
+1
+1
+gmx analyze -f num.xvg
+
+
+
+  表面积积：
+?
+?
+gmx sasa -f 3j70120pingheng.xtc -s 3j70120md.tpr -o area.xvg -oa oa.xvg -or resarea.xvg
+1
+gmx analyze -f resarea.xvg
+
+  范德华接触：
+gmx mindist -f 013j70120md.xtc -s 3j70120md.tpr -od mindist.xvg -on numcont.xvg -o atompair.out -or mindistres.xvg
+1
+1
+gmx analyze -f numcont.xvg
+gmx mdmat -f 01mojian120md.xtc -s mojian120md.tpr -no internum.xvg -frames indmf.xpm -mean interdm.xpm -t 1.5
+3
+
+
+本质动力学:
+gmx covar -f 3j70120pingheng.xtc -s 3j70120md.tpr -o eigen.xvg -v eigen.trr -l covar.log -xpm covar.xpm -xpma covara.xpm
+3
+3
+gmx anaeig -v eigen.trr -f 3j70120pingheng.xtc -s 3j70120md.tpr -comp eigcomp.xvg -rmsf eigrmsf.xvg -proj proj.xvg -extr extreme.pdb -first 1 -last 4 -nframes 2
+3
+3
+gmx anaeig -v eigen.trr -f 3j70120pingheng.xtc -s 3j70120md.tpr -2d 2dproj.xvg -first 1 -last 2
+3
+3
+用rasmol做图
+file - extreme1.pdb  
+display - backbone  
+colours - chain
+file - save as (mingcheng:extreme1.trr)
+
+gmx anaeig -v eigen1.trr -v2 eigen2.trr -over overlap.xvg -inpr inprod.xpm(xmgrace overlap.xvg)
+(tishi:
+Fatal error:
+hi (0.000000) <= lo (0.000000)
+For more information and tips for troubleshooting, please check the GROMACS
+website at http://www.gromacs.org/Documentation/Errors)
+
+gmx analyze -f proj.xvg -cc coscont.xvg -dist dist.xvg -ee errest.xvg -ac autocorr.xvg -av average.xvg -msd msd.xvg -n 4
+
+
+
+gmx covar -f complexgai3pingheng.xtc -s complexgai3.tpr -o complexgai3eigen.xvg -v complexgai3eigen.trr -l complexgai3covar.log
+gmx covar -f swissgai120pingheng.xtc -s swissgai120.tpr -o swissgai120eigen.xvg -v swissgai120eigen.trr -l swissgai120covar.log
+分析:xmgrace -legend load xmgrace complexgai3eigen.xvg swissgai120eigen.xvg
+菜单栏的 plot-axis:调整x，y轴的范围(-1)和 major spacing调节最小单位值(5)；
+       plot-graph-main:调整横纵坐标标题。
+分析：
+
+
+
+
+
+
+
+
+
+xin:
+gmx covar -f swissgai120pingheng.xtc -s swissgai120.tpr -o swissgai120eigen.xvg -v swissgai120eigen.trr -l swissgai120covar.log -av average.pdb
+3
+3
+gmx covar -f swissgai120pingheng.xtc -s swissgai120.tpr -av average.pdb
+3
+3
+gmx covar -f swissgai120pingheng.xtc -s swissgai120.tpr -o eigen.xvg -v eigen.trr -l covar.log -xpm covar.xpm -xpma covara.xpm
+3
+3
+gmx anaeig -v swissgai120eigen.trr -f swissgai120pingheng.xtc -s swissgai120.tpr -comp swissgai120eigcomp.xvg -rmsf 1ic6_423Keigrmsf.xvg -proj swissgai120proj.xvg -extr swissgai120extreme.pdb -first 1 -last 4 -nframes 2
+3
+3
+gmx anaeig -v swissgai120eigen.trr -f swissgai120pingheng.xtc -s swissgai120.tpr -2d swissgai1202dproj.xvg -first 1 -last 2
+3
+3
+xmgrace swissgai1202dproj.xvg
+
+
+gmx make_ndx -f complexgai3.gro -o index.ndx
+r 31-500 & 3
+15 r_31-500_&_C-alpha  :   621 atoms
+q
+ri 182-681 & 3
+16 r_182-681_&_C-alpha :   470 atoms
+q
+RMSD:gmx rms -s complexgai3.tpr -f 01complexgai3.xtc -n complexgai3gp120.ndx -o temp1.xvg
+gmx trjconv -f 01complexgai3.xtc -s complexgai3.tpr -n complexgai3gp120.ndx -o xincomplexgai3pingheng.xtc -b 30000 -e 50000
+RMSF:gmx rmsf -f xincomplexgai3pingheng.xtc -s complexgai3.tpr -n complexgai3gp120.ndx -o xincomplexgai3rmsf.xvg -ox average.pdb -res -oq bfactor.pdb
+回旋半径:gmx gyrate -f xincomplexgai3pingheng.xtc -s complexgai3.tpr -n index.ndx -o gyrate.xvg
+氢键：gmx hbond -f xincomplexgai3pingheng.xtc -s complexgai3.tpr -n index.ndx -num num.xvg -g hbond.log -hbn hbond.ndx
+范德华接触：gmx mindist -f xincomplexgai3pingheng.xtc -s complexgai3.tpr -n index.ndx -od mindist.xvg -on numcont.xvg -o atompair.out -or mindistres.xvg
+表面积积:gmx sasa -f xincomplexgai3pingheng.xtc -s complexgai3.tpr -n index.ndx -o area.xvg -oa oa.xvg -or resarea.xvg
+二级结构：gmx do_dssp -f xincomplexgai3pingheng.xtc -s complexgai3.tpr -n index.ndx -ssdump dump.dat -map ss.map -sc sc.xvg -o ss.xpm 
+
+
+xincomplex benzhidonglixue:
+gmx covar -f xincomplexgai3pingheng.xtc -s complexgai3.tpr -n index.ndx -o xincomplexgai3eigen.xvg -v xincomplexgai3eigen.trr -l xincomplexgai3covar.log -av average.pdb
+3
+3
+gmx covar -f xincomplexgai3pingheng.xtc -s complexgai3.tpr -n index.ndx -av average.pdb
+3
+3
+gmx covar -f xincomplexgai3pingheng.xtc -s complexgai3.tpr -n index.ndx -o eigen.xvg -v eigen.trr -l covar.log -xpm covar.xpm -xpma covara.xpm
+3
+3
+gmx anaeig -v xincomplexgai3eigen.trr -f xincomplexgai3pingheng.xtc -s complexgai3.tpr -n index.ndx -comp xincomplexgai3eigcomp.xvg -rmsf xincomplexgai3eigrmsf.xvg -proj xincomplexgai3proj.xvg -extr xincomplegai3extreme.pdb -first 1 -last 4 -nframes 2
+3
+3
+gmx anaeig -v xincomplexgai3eigen.trr -f xincomplexgai3pingheng.xtc -n index.ndx -s complexgai3.tpr -2d complexgai32dproj.xvg -first 1 -last 2
+3
+3
+xmgrace swissgai1202dproj.xvg
+xmgrace xincomplexgai3eigcomp.xvg
+xmgrace xincomplexgai3eigrmsf.xvg
+
+
+组合本质动力学:
+组合轨迹：
+gmx trjcat -f swissgai120pingheng.xtc xincomplexgai3pingheng.xtc -n indexCa.ndx -o combine.xtc -settime
+c回车
+c回车
+协方差矩阵，串联轨迹在组合本征向量上的投射及性质：
+(1)、把每一个温度都做出eigen.xvg图，然后合并。
+gmx covar -f complexgai3pingheng.xtc -s complexgai3.tpr -n indexCa.ndx -o complexgai3eigen.xvg -v complexgai3eigen.trr -l complexgai3covar.log
+gmx covar -f swissgai120pingheng.xtc -s swissgai120.tpr -o swissgai120eigen.xvg -v swissgai120eigen.trr -l swissgai120covar.log
+做图
+xmgrace -legend load xmgrace complexgai3eigen.xvg swissgai120eigen.xvg
+菜单栏的 plot-axis:调整x，y轴的范围(-1)和 major spacing调节最小单位值(5)；
+       plot-graph-main:调整横纵坐标标题。
+第二个图：
+(1)、前30个本征向量对应的本征值：
+gmx covar -f xincomplexgai3pingheng.xtc -s complexgai3.tpr -n indexCa.ndx -o complexgai3eigen.xvg -v complexgai3eigen.trr -l complexgai3covar.log 
+gmx covar -f swissgai120pingheng.xtc -s swissgai120.tpr -o swissgai120eigen.xvg -v swissgai120eigen.trr -l swissgai120covar.log
+xmgrace complexgai3eigen.xvg swissgai120eigen.xvg
+
+老师方法:
+gmx trjcat -f swissgai120pingheng.xtc xincomplexgai3pingheng.xtc -n indexCa.ndx -o combine.xtc -settime
+c回车
+c回车
+gmx covar -f xincomplexgai3pingheng.xtc -s complexgai3.tpr -n indexCa.ndx -av average.pdb
+gmx covar -s average.pdb -f combine.xtc -v complexgai3eigen.trr -av combineaverage.pdb -l combinedlog.log -xpm combinedxpm.xpm -xpma combinedxpma.xpma
+内插图做法：
+gmx anaeig -s average.pdb -f combine.xtc -v complexgai3eigen.trr -comp combinedcomp.xvg -rmsf combinedrmsf.xvg -proj combinedproj.xvg -extr combinedextr.pdb -first 1 -last 10 -nframes 10 -entropy
+gmx anaeig -s combineaverage.pdb -f combine.xtc -v complexgai3eigen.trr -eig eigenval.xvg -comp combinecomp.xvg -rmsf combinermsf.xvg -proj combineproj.xvg -first 1 -last 30 -nframes 30 -entropy
+gmx analyze -f combinedproj.xvg -msd combinedmsd.xvg -dist combineddist.xvg
+（例如）输出：
+                                      std. dev.    relative deviation of
+                       standard       ---------   cumulants from those of
+set      average       deviation      sqrt(n-1)   a Gaussian distribition
+                                                      cum. 3   cum. 4
+SS1   -2.885710e+01   1.534431e-01   2.207643e-03      -0.339    0.135
+
+2416, time=14496
+Making distributions with 15 bins
+
+以本真向量为函数的投射平均值：
+
+@   xaxis  label "Eigenvector  index"
+@   yaxis  label "Average value of projection of extracted eigenvector(nm)"
+@TYPE  xy
+   1    -2.885710e+01    2.887153e+01
+   2    -1.553050e-01    1.553793e-01
+   3     5.941683e-01   -5.944660e-01
+   4     5.092342e-01   -5.094883e-01
+   5     1.833312e-01   -1.834223e-01
+   6    -4.675425e-02    4.677833e-02
+   7    -5.243034e-01    5.245681e-01
+   8    -6.239200e-01    6.242295e-01
+   9    -1.112201e-01    1.112729e-01
+  10     1.583792e-01   -1.584588e-01
+  11    -1.696936e-01    1.697783e-01
+  12     1.848988e-01   -1.849916e-01
+  13     3.235591e-02   -3.237171e-02
+  14     8.757067e-02   -8.761255e-02
+  15    -1.118821e-01    1.119388e-01
+  16    -1.365231e-02    1.366166e-02
+  17     1.012542e-01   -1.013031e-01
+  18    -5.382938e-02    5.385651e-02
+  19    -3.200125e-02    3.201254e-02
+  20    -1.272551e-02    1.273077e-02
+  21     5.639322e-02   -5.642027e-02
+  22    -3.820825e-02    3.822855e-02
+  23    -1.840744e-02    1.841673e-02
+  24     2.571056e-02   -2.572559e-02
+  25    -3.124303e-02    3.125703e-02
+  26     4.466285e-02   -4.468813e-02
+  27     1.497836e-02   -1.498565e-02
+  28     2.187897e-02   -2.188899e-02
+  29     3.382561e-02   -3.384060e-02
+  30    -7.342658e-03    7.346035e-03
+
+以本真向量为函数的投射msd
+
+@xaxis  label "Eigenvector index"
+@yaxis  label"Mean square displacement of projection of extracted eigenvector RMSF(nm)"
+@TYPE xy 
+  1   4.446871e-01   1.860487e-01
+  2   9.548370e-02   1.957280e-02
+  3   4.582968e-02   3.695323e-02
+  4   5.126330e-02   2.252682e-02
+  5   3.944087e-02   1.374641e-02
+  6   3.603386e-02   1.737182e-02
+  7   3.639851e-02   1.331431e-02
+  8   3.521140e-02   1.821186e-02
+  9   3.296577e-02   2.236124e-02
+ 10   2.957925e-02   1.593185e-02
+ 11   2.612186e-02   6.374295e-02
+ 12   2.699126e-02   1.244714e-02
+ 13   2.575221e-02   1.806283e-02 
+ 14   2.322847e-02   1.516077e-02
+ 15   2.020781e-02   3.301406e-02
+ 16   1.924594e-02   1.636336e-02
+ 17   1.955257e-02   2.118655e-02
+ 18   1.647038e-02   1.986101e-02
+ 19   1.760543e-02   5.069461e-03
+ 20   1.723403e-02   1.661894e-02
+ 21   1.423555e-02   1.648635e-02
+ 22   1.461299e-02   1.907466e-02
+ 23   1.243068e-02   8.651572e-03
+ 24   1.161703e-02   1.845981e-02
+ 25   1.119365e-02   7.447154e-03
+ 26   1.234573e-02   1.004816e-02
+ 27   1.126737e-02   1.555794e-02
+ 29   1.018804e-02   1.083606e-02
+ 30   1.001611e-02   1.222059e-02
+
+将以上数据另存为文件 average_projection.xvg和  msd_projection.xvg
+xmgrace -nxy average_projection.xvg
+xmgrace -nxy msd_projection.xvg
+
+
+
+二、串联轨迹在组合本征向量上的投射及性质
+（此处的eigen.trr和md.tpr可以随便使用任何温度，只要原子数木一样即可。）
+gmx convert-tpr -s complexgai3.tpr -n index.ndx -o 1.tpr  (y or w)w
+gmx convert-tpr -s swissgai120.tpr -o 1.tpr  (y or w)y
+
+内插图做法：
+gmx anaeig -s combineaverage.pdb -f combine.xtc -v complexgai3eigen.trr -eig eigenval.xvg -comp combinecomp.xvg -rmsf combinermsf.xvg -proj combineproj.xvg -first 1 -last 30 -nframes 30 -entropy
+
+
+
