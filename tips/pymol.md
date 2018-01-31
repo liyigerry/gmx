@@ -24,3 +24,6 @@ rebuild
 color blue, ss h
 color red, ss s
 color yellow, ss l+''
+
+png filename.png, dpi=600
+
