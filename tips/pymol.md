@@ -26,4 +26,4 @@ color red, ss s
 color yellow, ss l+''
 
 png filename.png, dpi=600
-
+png filename.png,height=6in,width=6in,dpi=640,ray=1
